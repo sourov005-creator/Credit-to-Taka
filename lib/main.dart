@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.light,
+  ));
   runApp(const CreditToTakaApp());
 }
 
@@ -14,373 +20,487 @@ class CreditToTakaApp extends StatelessWidget {
       title: 'Credit to Taka',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF7F9FA),
-        textTheme: GoogleFonts.plusJakartaSansTextTheme(),
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: const Color(0xFF07090E),
+        textTheme: GoogleFonts.orbitronTextTheme(ThemeData.dark().textTheme),
       ),
-      home: const MainNavigationScreen(),
+      home: const UltraGameScreen(),
     );
   }
 }
 
-class MainNavigationScreen extends StatefulWidget {
-  const MainNavigationScreen({super.key});
+class PlayerCard {
+  final String name;
+  final String title;
+  final String rating;
+  final String club;
+  final List<Color> gradient;
+  final Color neonGlow;
+  final IconData badgeIcon;
 
-  @override
-  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
+  PlayerCard({
+    required this.name,
+    required this.title,
+    required this.rating,
+    required this.club,
+    required this.gradient,
+    required this.neonGlow,
+    required this.badgeIcon,
+  });
 }
 
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
-  int _currentIndex = 2;
-  int _tapCount = 10;
-  int _cardPoints = 120;
+class UltraGameScreen extends StatefulWidget {
+  const UltraGameScreen({super.key});
+
+  @override
+  State<UltraGameScreen> createState() => _UltraGameScreenState();
+}
+
+class _UltraGameScreenState extends State<UltraGameScreen> with TickerProviderStateMixin {
+  int _tapCount = 0;
+  double _takaBalance = 0.0;
+  int _selectedCardIndex = 0;
+  int _multiplier = 1;
+
+  late AnimationController _tapScaleController;
+
+  final List<PlayerCard> _playerCards = [
+    PlayerCard(
+      name: "L. MESSI",
+      title: "BALLON D'OR KING",
+      rating: "99",
+      club: "INTER MIAMI",
+      gradient: [const Color(0xFF00F2FE), const Color(0xFF4FACFE), const Color(0xFF0F172A)],
+      neonGlow: const Color(0xFF00F2FE),
+      badgeIcon: Icons.auto_awesome,
+    ),
+    PlayerCard(
+      name: "C. RONALDO",
+      title: "EL COMANDANTE",
+      rating: "99",
+      club: "AL NASSR",
+      gradient: [const Color(0xFFFF0844), const Color(0xFFFFB199), const Color(0xFF1E1014)],
+      neonGlow: const Color(0xFFFF0844),
+      badgeIcon: Icons.bolt,
+    ),
+    PlayerCard(
+      name: "K. MBAPPÉ",
+      title: "TURBO BEAST",
+      rating: "97",
+      club: "REAL MADRID",
+      gradient: [const Color(0xFFB92B27), const Color(0xFF1565C0), const Color(0xFF0B1021)],
+      neonGlow: const Color(0xFF1565C0),
+      badgeIcon: Icons.electric_bolt_rounded,
+    ),
+    PlayerCard(
+      name: "NEYMAR JR",
+      title: "MAGIC SAMBA",
+      rating: "95",
+      club: "AL HILAL",
+      gradient: [const Color(0xFFF7971E), const Color(0xFFFFD200), const Color(0xFF1A1500)],
+      neonGlow: const Color(0xFFFFD200),
+      badgeIcon: Icons.flare_rounded,
+    ),
+    PlayerCard(
+      name: "E. HAALAND",
+      title: "CYBORG STRIKER",
+      rating: "96",
+      club: "MAN CITY",
+      gradient: [const Color(0xFF00F5D4), const Color(0xFF7B2CBF), const Color(0xFF0C1919)],
+      neonGlow: const Color(0xFF00F5D4),
+      badgeIcon: Icons.offline_bolt_rounded,
+    ),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _tapScaleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 80),
+      lowerBound: 0.92,
+      upperBound: 1.0,
+    );
+    _tapScaleController.value = 1.0;
+  }
+
+  @override
+  void dispose() {
+    _tapScaleController.dispose();
+    super.dispose();
+  }
+
+  void _handleTap() {
+    if (_tapCount % 50 == 0 && _tapCount > 0) {
+      HapticFeedback.heavyImpact();
+    } else {
+      HapticFeedback.lightImpact();
+    }
+
+    _tapScaleController.reverse().then((_) => _tapScaleController.forward());
+
+    setState(() {
+      _tapCount++;
+      _takaBalance += (0.10 * _multiplier);
+
+      if (_tapCount >= 500) {
+        _multiplier = 5;
+      } else if (_tapCount >= 100) {
+        _multiplier = 3;
+      } else if (_tapCount >= 50) {
+        _multiplier = 2;
+      }
+
+      if ([10, 50, 100, 500, 1000].contains(_tapCount)) {
+        _showMilestoneDialog(_tapCount);
+      }
+    });
+  }
+
+  void _showMilestoneDialog(int milestone) {
+    HapticFeedback.vibrate();
+    SystemSound.play(SystemSoundType.click);
+
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: "Milestone",
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (ctx, anim1, anim2) {
+        return Center(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0E131F),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(color: _playerCards[_selectedCardIndex].neonGlow, width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: _playerCards[_selectedCardIndex].neonGlow.withOpacity(0.5),
+                  blurRadius: 40,
+                  spreadRadius: 2,
+                )
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.workspace_premium_rounded, size: 70, color: _playerCards[_selectedCardIndex].neonGlow),
+                  const SizedBox(height: 12),
+                  Text(
+                    "মাইলস্টোন অর্জিত!",
+                    style: GoogleFonts.orbitron(fontSize: 16, color: Colors.white70, letterSpacing: 2),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    "$milestone TAPS!",
+                    style: GoogleFonts.orbitron(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white),
+                  ),
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Text(
+                      "বোনাস: +৳${(milestone * 0.25).toStringAsFixed(1)} এবং x$_multiplier বুস্ট!",
+                      style: const TextStyle(color: Colors.tealAccent, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _playerCards[_selectedCardIndex].neonGlow,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    ),
+                    onPressed: () {
+                      setState(() => _takaBalance += (milestone * 0.25));
+                      Navigator.pop(ctx);
+                    },
+                    child: const Text("পুরস্কার গ্রহণ করুন", style: TextStyle(fontWeight: FontWeight.w900)),
+                  )
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> screens = [
-      const Center(child: Text("Leaderboard / Stats")),
-      const Center(child: Text("Themes & Cards")),
-      _buildHomeScreen(),
-      _buildStoreScreen(),
-      _buildProfileScreen(),
-    ];
+    final activeCard = _playerCards[_selectedCardIndex];
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu_rounded, color: Colors.black, size: 28),
-            onPressed: () => Scaffold.of(context).openDrawer(),
-          ),
-        ),
-        title: Text(
-          _currentIndex == 2 ? "Home" : _currentIndex == 3 ? "Card Store" : "Profile",
-          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 16),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8F8F5),
-              borderRadius: BorderRadius.circular(20),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("CREDIT TO TAKA",
+                          style: GoogleFonts.orbitron(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 2, color: Colors.white)),
+                      Text("SEASON 1 • FUT ED.",
+                          style: TextStyle(fontSize: 10, color: Colors.white.withOpacity(0.4), letterSpacing: 1.5)),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF111726),
+                      borderRadius: BorderRadius.circular(25),
+                      border: Border.all(color: Colors.white.withOpacity(0.1)),
+                      boxShadow: [
+                        BoxShadow(color: activeCard.neonGlow.withOpacity(0.2), blurRadius: 15),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.currency_exchange_rounded, color: activeCard.neonGlow, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          "৳ ${_takaBalance.toStringAsFixed(2)}",
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-            child: Row(
+            SizedBox(
+              height: 52,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: _playerCards.length,
+                itemBuilder: (context, index) {
+                  final isSelected = _selectedCardIndex == index;
+                  final card = _playerCards[index];
+                  return GestureDetector(
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      setState(() => _selectedCardIndex = index);
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: isSelected ? card.neonGlow.withOpacity(0.18) : const Color(0xFF111622),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isSelected ? card.neonGlow : Colors.white.withOpacity(0.08),
+                          width: isSelected ? 1.5 : 1.0,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(card.badgeIcon, size: 16, color: isSelected ? card.neonGlow : Colors.white54),
+                          const SizedBox(width: 8),
+                          Text(
+                            card.name.split(" ").last,
+                            style: GoogleFonts.orbitron(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: isSelected ? Colors.white : Colors.white60,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const Spacer(),
+            Column(
               children: [
-                const Icon(Icons.sports_soccer, color: Color(0xFF00BFA5), size: 18),
-                const SizedBox(width: 6),
                 Text(
-                  "$_cardPoints",
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF004D40),
-                    fontSize: 15,
+                  "$_tapCount",
+                  style: GoogleFonts.orbitron(
+                    fontSize: 75,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    shadows: [
+                      Shadow(color: activeCard.neonGlow.withOpacity(0.8), blurRadius: 30),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: activeCard.neonGlow.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: activeCard.neonGlow.withOpacity(0.4)),
+                  ),
+                  child: Text(
+                    "BOOST SPEED: x$_multiplier",
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: activeCard.neonGlow,
+                      letterSpacing: 2,
+                    ),
                   ),
                 ),
               ],
             ),
-          )
-        ],
-      ),
-      drawer: _buildDrawer(),
-      body: screens[_currentIndex],
-      bottomNavigationBar: _buildBottomNav(),
-    );
-  }
-
-  Widget _buildHomeScreen() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Spacer(),
-        Text(
-          "$_tapCount",
-          style: const TextStyle(
-            fontSize: 85,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF00BFA5),
-          ),
-        ),
-        const Spacer(),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildCircleBtn(
-              icon: Icons.remove,
-              size: 60,
-              color: Colors.white,
-              iconColor: Colors.black,
-              onTap: () => setState(() => _tapCount > 0 ? _tapCount-- : null),
-            ),
-            const SizedBox(width: 24),
-            _buildCircleBtn(
-              icon: Icons.add,
-              size: 85,
-              color: const Color(0xFF00BFA5),
-              iconColor: Colors.white,
-              onTap: () => setState(() {
-                _tapCount++;
-                if (_tapCount % 10 == 0) _cardPoints += 5;
-              }),
-            ),
-            const SizedBox(width: 24),
-            _buildCircleBtn(
-              icon: Icons.refresh,
-              size: 60,
-              color: Colors.white,
-              iconColor: Colors.black,
-              onTap: () => setState(() => _tapCount = 0),
-            ),
-          ],
-        ),
-        const SizedBox(height: 50),
-      ],
-    );
-  }
-
-  Widget _buildStoreScreen() {
-    final packs = [
-      {'name': '50 Points', 'price': '\$0.49', 'tag': null},
-      {'name': '60 Points', 'price': '\$0.51', 'tag': 'Best Deal'},
-      {'name': '100 Points', 'price': '\$0.99', 'tag': 'Top Selling'},
-      {'name': '110 Points', 'price': '\$1.01', 'tag': 'Best Deal'},
-      {'name': '200 Points', 'price': '\$1.99', 'tag': null},
-      {'name': '210 Points', 'price': '\$2.01', 'tag': 'Best Deal'},
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Card Packs Store", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                SizedBox(height: 4),
-                Text("Choose a card pack and top up instantly.", style: TextStyle(color: Colors.grey)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 0.88,
-              ),
-              itemCount: packs.length,
-              itemBuilder: (context, index) {
-                final item = packs[index];
-                return Container(
+            const SizedBox(height: 25),
+            GestureDetector(
+              onTap: _handleTap,
+              child: ScaleTransition(
+                scale: _tapScaleController,
+                child: Container(
+                  width: 270,
+                  height: 390,
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFE0F2F1), width: 1.5),
-                  ),
-                  child: Stack(
-                    children: [
-                      if (item['tag'] != null)
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF3E5F5),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              item['tag'] as String,
-                              style: const TextStyle(fontSize: 10, color: Colors.purple, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ),
-                      Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.style_rounded, size: 36, color: Color(0xFF00BFA5)),
-                            const SizedBox(height: 8),
-                            Text(item['name'] as String, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 14),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                              decoration: BoxDecoration(
-                                border: Border.all(color: const Color(0xFF00BFA5)),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                item['price'] as String,
-                                style: const TextStyle(color: Color(0xFF00BFA5), fontWeight: FontWeight.bold),
-                              ),
-                            )
-                          ],
-                        ),
+                    gradient: LinearGradient(
+                      colors: activeCard.gradient,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(32),
+                    border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: activeCard.neonGlow.withOpacity(0.45),
+                        blurRadius: 45,
+                        spreadRadius: 3,
                       )
                     ],
                   ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProfileScreen() {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: const Color(0xFFEDE7F6),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: const Row(
-            children: [
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: Color(0xFF00BFA5),
-                child: Icon(Icons.person, color: Colors.white, size: 32),
-              ),
-              SizedBox(width: 14),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Sourov", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  Text("sourov@gmail.com", style: TextStyle(color: Colors.black54)),
-                ],
-              )
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-        const Text("Daily Login Streak", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 10),
-        SizedBox(
-          height: 80,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: 7,
-            itemBuilder: (context, i) => Container(
-              width: 55,
-              margin: const EdgeInsets.only(right: 8),
-              decoration: BoxDecoration(
-                color: i == 0 ? const Color(0xFFE0F2F1) : Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text("Day ${i + 1}", style: const TextStyle(fontSize: 10, color: Colors.grey)),
-                  const SizedBox(height: 6),
-                  Icon(i == 0 ? Icons.check_circle : Icons.lock_outline, size: 18, color: i == 0 ? const Color(0xFF00BFA5) : Colors.grey),
-                  const SizedBox(height: 4),
-                  Text("+${(i + 1) * 10}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCircleBtn({required IconData icon, required double size, required Color color, required Color iconColor, required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: color,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 15,
-              offset: const Offset(0, 5),
-            )
-          ],
-        ),
-        child: Icon(icon, color: iconColor, size: size * 0.42),
-      ),
-    );
-  }
-
-  Widget _buildDrawer() {
-    return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          const DrawerHeader(
-            decoration: BoxDecoration(color: Color(0xFF00BFA5)),
-            child: Text('Credit to Taka', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-          ),
-          ListTile(leading: const Icon(Icons.headset_mic_outlined), title: const Text('Official Support'), onTap: () {}),
-          ListTile(leading: const Icon(Icons.code), title: const Text('Contact Developer'), onTap: () {}),
-          ListTile(leading: const Icon(Icons.privacy_tip_outlined), title: const Text('Privacy Policy'), onTap: () {}),
-          ListTile(leading: const Icon(Icons.logout, color: Colors.red), title: const Text('Log Out', style: TextStyle(color: Colors.red)), onTap: () {}),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomNav() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(35),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 5),
-          )
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _navItem(Icons.bar_chart_rounded, 0),
-          _navItem(Icons.palette_outlined, 1),
-          _navItem(Icons.home_filled, 2),
-          _navItem(Icons.shopping_bag_outlined, 3),
-          _navItem(Icons.person_outline, 4),
-        ],
-      ),
-    );
-  }
-
-  Widget _navItem(IconData icon, int index) {
-    final isSelected = _currentIndex == index;
-    return GestureDetector(
-      onTap: () => setState(() => _currentIndex = index),
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFE0F2F1) : Colors.transparent,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, color: isSelected ? const Color(0xFF00BFA5) : Colors.grey, size: 24),
-      ),
-    );
-  }
-}
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        right: -30,
+                        top: -30,
+                        child: Icon(
+                          activeCard.badgeIcon,
+                          size: 190,
+                          color: Colors.white.withOpacity(0.06),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(22),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      activeCard.rating,
+                                      style: GoogleFonts.orbitron(
+                                        fontSize: 34,
+                                        fontWeight: FontWeight.w900,
+                                        color: Colors.white,
+                                        height: 1.0,
+                                      ),
+                                    ),
+                                    Text(
+                                      "OVR",
+                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white.withOpacity(0.5)),
+                                    ),
+                                  ],
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.4),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.white12),
+                                  ),
+                                  child: Text(
+                                    activeCard.club,
+                                    style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.white70),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Spacer(),
+                            Center(
+                              child: Container(
+                                width: 95,
+                                height: 95,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.black.withOpacity(0.35),
+                                  border: Border.all(color: activeCard.neonGlow.withOpacity(0.6), width: 2),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: activeCard.neonGlow.withOpacity(0.4),
+                                      blurRadius: 25,
+                                    )
+                                  ],
+                                ),
+                                child: Icon(
+                                  activeCard.badgeIcon,
+                                  size: 45,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                            const Spacer(),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  activeCard.title,
+                                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.white.withOpacity(0.6), letterSpacing: 2),
+                                ),
+                                Text(
+                                  activeCard.name,
+                                  style: GoogleFonts.orbitron(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w900,
+                                    color: Colors.white,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.45),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: const Center(
+                                    child: Text(
+                                      "TOUCH TO STRIKE",
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w900,
+                                        color: Colors.white70,
+                                        letterSpacing: 2,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+      
