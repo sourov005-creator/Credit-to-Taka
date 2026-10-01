@@ -1,41 +1,23 @@
-name: Build Android APK
+# Credit to Taka
 
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+A futuristic Flutter tap-to-earn style game UI.
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+## Features
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+- Player card selection
+- Tap counter
+- Taka balance display
+- Tap multiplier
+- Milestone rewards
+- Haptic feedback
+- Neon gaming UI
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
+## Setup
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-          cache: true
+Run:
 
-      - name: Recreate Android Project Files
-        run: flutter create --platforms=android --project-name credit_to_taka .
+flutter pub get
 
-      - name: Get Dependencies
-        run: flutter pub get
+Then:
 
-      - name: Build APK
-        run: flutter build apk --release
-
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Credit-to-Taka-Release-APK
-          path: build/app/outputs/flutter-apk/app-release.apk
+flutter run
